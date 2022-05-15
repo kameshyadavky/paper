@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.beetlestance.paper.common.toDataClass
 import com.beetlestance.paper.common.toJsonString
-import com.beetlestance.paper.data.Note
+import com.beetlestance.paper.data.model.Note
 import com.beetlestance.paper.data.NoteEditorRepository
 import com.beetlestance.paper.editor.PaperEditorValue
 import dagger.hilt.android.lifecycle.HiltViewModel
