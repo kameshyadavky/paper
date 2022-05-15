@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         applicationId = "com.beetlestance.paper"
-        minSdk = 23
+        minSdk = 21
         targetSdk = 32
         versionCode = 1
         versionName = "1"

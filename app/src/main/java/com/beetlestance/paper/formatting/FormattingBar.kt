@@ -16,17 +16,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beetlestance.paper.R
 import com.beetlestance.paper.editor.PaperEditorValue
-import com.beetlestance.paper.editor.PaperParagraphToggle
 import com.beetlestance.paper.editor.PaperSpanToggle
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -77,7 +74,7 @@ fun FormattingBar(
             ) { enabled, onToggle ->
                 Image(
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_italic),
-                    contentDescription = "Bold text",
+                    contentDescription = "Italic text",
                     modifier = Modifier
                         .clickable { onToggle() }
                         .background(
@@ -100,7 +97,7 @@ fun FormattingBar(
             ) { enabled, onToggle ->
                 Image(
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_strikethrough),
-                    contentDescription = "Bold text",
+                    contentDescription = "Line through text",
                     modifier = Modifier
                         .clickable { onToggle() }
                         .background(
@@ -123,7 +120,7 @@ fun FormattingBar(
             ) { enabled, onToggle ->
                 Image(
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_underline),
-                    contentDescription = "Bold text",
+                    contentDescription = "Underline text",
                     modifier = Modifier
                         .clickable { onToggle() }
                         .background(
@@ -146,7 +143,7 @@ fun FormattingBar(
             ) { enabled, onToggle ->
                 Image(
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_heading),
-                    contentDescription = "Bold text",
+                    contentDescription = "heading text",
                     modifier = Modifier
                         .clickable { onToggle() }
                         .background(
