@@ -4,13 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.beetlestance.paper.common.toDataClass
 import com.beetlestance.paper.common.toJsonString
-import com.beetlestance.paper.data.model.Note
 import com.beetlestance.paper.data.NoteEditorRepository
-import com.beetlestance.paper.editor.PaperEditorValue
+import com.beetlestance.paper.data.model.Note
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import okhttp3.internal.notify
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,27 +16,29 @@ class NoteEditorViewModel @Inject constructor(
     private val noteEditorRepository: NoteEditorRepository
 ) : ViewModel() {
 
+    private var noteId: Long = 0
     private val selectedIndex = MutableStateFlow(0)
     private val bodyItems: MutableStateFlow<List<Any>> = MutableStateFlow(emptyList())
-    private val note: MutableStateFlow<Note?> = MutableStateFlow(null)
+    private val heading: MutableStateFlow<String> = MutableStateFlow("")
 
     init {
 
         viewModelScope.launch {
             noteEditorRepository.observeNote().collect { note ->
+                val startItem = NoteEditorValue.Empty
                 if (note == null) {
-                    val startItem = NoteEditorValue.Empty
                     bodyItems.emit(listOf(startItem))
                 } else {
-                    val items = note.body!!.map {
+                    noteId = note.id
+                    val items = note.body?.map {
                         if (it.type == Note.Body.Text) {
                             it.body.toDataClass<NoteEditorValue>()
                         } else {
                             it.body.toDataClass<NoteImage>()
                         }
                     }
-                    this@NoteEditorViewModel.note.emit(note)
-                    bodyItems.emit(items)
+                    heading.emit(note.heading)
+                    bodyItems.emit(items ?: listOf(startItem))
                 }
 
             }
@@ -47,14 +47,14 @@ class NoteEditorViewModel @Inject constructor(
 
     val state: StateFlow<NoteEditorViewState> = combine(
         bodyItems,
-        note,
+        heading,
         selectedIndex,
-    ) { noteItems, note, index ->
+    ) { noteItems, heading, index ->
         NoteEditorViewState(
-            heading = note?.heading ?: "",
+            heading = heading,
             bodyItems = noteItems,
             selectedIndex = index,
-            note = note
+            note = null
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NoteEditorViewState.Empty)
 
@@ -66,7 +66,7 @@ class NoteEditorViewModel @Inject constructor(
 
     fun updateHeading(heading: String) {
         viewModelScope.launch {
-            note.getAndUpdate { it?.copy(heading = heading) }
+            this@NoteEditorViewModel.heading.emit(heading)
         }
     }
 
@@ -130,13 +130,9 @@ class NoteEditorViewModel @Inject constructor(
 
     fun saveNote() {
         viewModelScope.launch {
-            val earlierNote = note.value ?: Note(
-                body = null,
-                heading = state.value.heading
-            )
-
             noteEditorRepository.updateNote(
-                earlierNote.copy(
+                Note(
+                    id = noteId,
                     body = bodyItems.value.mapNotNull {
                         when (it) {
                             is NoteEditorValue -> {
@@ -153,7 +149,8 @@ class NoteEditorViewModel @Inject constructor(
                             }
                             else -> null
                         }
-                    }
+                    },
+                    heading = heading.value
                 )
             )
         }
