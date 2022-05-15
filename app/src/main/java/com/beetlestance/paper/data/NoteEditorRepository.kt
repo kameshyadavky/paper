@@ -1,10 +1,7 @@
 package com.beetlestance.paper.data
 
-import com.beetlestance.paper.common.toJsonString
-import com.beetlestance.paper.noteeditor.NoteImage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.getAndUpdate
 import javax.inject.Inject
 
 

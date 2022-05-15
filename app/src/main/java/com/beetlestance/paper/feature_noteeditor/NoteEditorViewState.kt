@@ -1,4 +1,4 @@
-package com.beetlestance.paper.noteeditor
+package com.beetlestance.paper.feature_noteeditor
 
 import androidx.compose.runtime.Immutable
 import com.beetlestance.paper.editor.PaperEditorValue

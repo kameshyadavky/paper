@@ -1,4 +1,4 @@
-package com.beetlestance.paper.noteeditor
+package com.beetlestance.paper.feature_noteeditor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
