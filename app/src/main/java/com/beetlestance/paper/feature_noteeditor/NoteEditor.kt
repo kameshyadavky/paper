@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.Font
@@ -55,7 +56,8 @@ fun NoteEditor(viewModel: NoteEditorViewModel) {
         addImage = viewModel::addImage,
         updateImage = viewModel::updateImage,
         updateSelectedIndex = viewModel::updateSelectedIndex,
-        removeImage = viewModel::removeImage
+        removeImage = viewModel::removeImage,
+        saveToDb = viewModel::saveNote
     )
 }
 
@@ -67,7 +69,8 @@ fun NoteEditor(
     addImage: (Int, String) -> Unit,
     updateImage: (Int, String, Float) -> Unit,
     updateSelectedIndex: (Int) -> Unit,
-    removeImage: (Int) -> Unit
+    removeImage: (Int) -> Unit,
+    saveToDb: () -> Unit
 ) {
     Scaffold(
         modifier = Modifier
@@ -81,30 +84,10 @@ fun NoteEditor(
                 .navigationBarsWithImePadding()
                 .fillMaxSize()
         ) {
-            TextField(
-                value = state.heading,
-                onValueChange = { updateHeading(it) },
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth()
-                    .background(color = Color.DarkGray),
-                colors = TextFieldDefaults.textFieldColors(
-                    textColor = Color.White,
-                    backgroundColor = Color(android.graphics.Color.parseColor("#353846")),
-                    cursorColor = Color.White,
-                    focusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                placeholder = {
-                    Text(
-                        text = "Lost",
-                        color = Color.Gray,
-                        style = MaterialTheme.typography.h5.copy(fontFamily = fontFamily)
-                    )
-                },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.h5.copy(fontFamily = fontFamily)
+            TopContent(
+                heading = state.heading,
+                updateHeading = updateHeading,
+                saveToDb = saveToDb
             )
 
             EditScrollingContent(
@@ -156,6 +139,50 @@ fun NoteEditor(
 
 
         }
+    }
+}
+
+@Composable
+fun TopContent(
+    heading: String,
+    updateHeading: (heading: String) -> Unit,
+    saveToDb: () -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TextField(
+            value = heading,
+            onValueChange = { updateHeading(it) },
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .weight(1f)
+                .background(color = Color.DarkGray),
+            colors = TextFieldDefaults.textFieldColors(
+                textColor = Color.White,
+                backgroundColor = Color(android.graphics.Color.parseColor("#353846")),
+                cursorColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            placeholder = {
+                Text(
+                    text = "Lost",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.h5.copy(fontFamily = fontFamily)
+                )
+            },
+            singleLine = true,
+            textStyle = MaterialTheme.typography.h5.copy(fontFamily = fontFamily)
+        )
+
+        TextButton(
+            onClick = { saveToDb() },
+            modifier = Modifier.padding(end = 16.dp)
+        ) {
+            Text(text = "Save", color = Color(android.graphics.Color.parseColor("#CED2F8")))
+        }
+
     }
 }
 

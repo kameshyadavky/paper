@@ -10,6 +10,7 @@ import com.beetlestance.paper.editor.PaperEditorValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import okhttp3.internal.notify
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,22 +19,42 @@ class NoteEditorViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val selectedIndex = MutableStateFlow(0)
+    private val bodyItems: MutableStateFlow<List<Any>> = MutableStateFlow(emptyList())
+    private val note: MutableStateFlow<Note?> = MutableStateFlow(null)
+
+    init {
+
+        viewModelScope.launch {
+            noteEditorRepository.observeNote().collect { note ->
+                if (note == null) {
+                    val startItem = NoteEditorValue.Empty
+                    bodyItems.emit(listOf(startItem))
+                } else {
+                    val items = note.body!!.map {
+                        if (it.type == Note.Body.Text) {
+                            it.body.toDataClass<NoteEditorValue>()
+                        } else {
+                            it.body.toDataClass<NoteImage>()
+                        }
+                    }
+                    this@NoteEditorViewModel.note.emit(note)
+                    bodyItems.emit(items)
+                }
+
+            }
+        }
+    }
 
     val state: StateFlow<NoteEditorViewState> = combine(
-        noteEditorRepository.noteItems,
-        selectedIndex
-    ) { noteItems, index ->
+        bodyItems,
+        note,
+        selectedIndex,
+    ) { noteItems, note, index ->
         NoteEditorViewState(
-            heading = noteItems.heading,
-            bodyItems = noteItems.body?.map {
-                if (it.type == Note.Body.Text) {
-                    it.body.toDataClass<NoteEditorValue>()
-                } else {
-                    it.body.toDataClass<NoteImage>()
-                }
-            }
-                ?: listOf(NoteEditorValue(editorValue = PaperEditorValue())),
-            selectedIndex = index
+            heading = note?.heading ?: "",
+            bodyItems = noteItems,
+            selectedIndex = index,
+            note = note
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NoteEditorViewState.Empty)
 
@@ -45,27 +66,7 @@ class NoteEditorViewModel @Inject constructor(
 
     fun updateHeading(heading: String) {
         viewModelScope.launch {
-            noteEditorRepository.updateNote(
-                Note(
-                    heading = heading,
-                    body = state.value.bodyItems.map { noteItem ->
-                        when {
-                            noteItem is NoteImage -> {
-                                Note.Body(
-                                    type = Note.Body.Image,
-                                    body = noteItem.toJsonString()
-                                )
-                            }
-                            else -> {
-                                Note.Body(
-                                    type = Note.Body.Text,
-                                    body = noteItem.toJsonString()
-                                )
-                            }
-                        }
-                    }
-                )
-            )
+            note.getAndUpdate { it?.copy(heading = heading) }
         }
     }
 
@@ -75,36 +76,11 @@ class NoteEditorViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             selectedIndex.emit(index)
-            val noteBody =
-                state.value.bodyItems.mapIndexed { mapIndex, noteItem ->
-                    when {
-                        noteItem is NoteImage -> {
-                            Note.Body(
-                                type = Note.Body.Image,
-                                body = noteItem.toJsonString()
-                            )
-                        }
-                        noteItem is NoteEditorValue && index == mapIndex -> {
-                            Note.Body(
-                                type = Note.Body.Text,
-                                body = editorBody.toJsonString()
-                            )
-                        }
-                        else -> {
-                            Note.Body(
-                                type = Note.Body.Text,
-                                body = noteItem.toJsonString()
-                            )
-                        }
-                    }
+            bodyItems.getAndUpdate {
+                it.mapIndexed { mapIndex, any ->
+                    if (index == mapIndex) editorBody else any
                 }
-
-            noteEditorRepository.updateNote(
-                Note(
-                    heading = state.value.heading,
-                    body = noteBody
-                )
-            )
+            }
         }
     }
 
@@ -118,24 +94,7 @@ class NoteEditorViewModel @Inject constructor(
             if (bodyItems.lastIndex <= index) {
                 bodyItems.add(index + 1, NoteEditorValue.Empty)
             }
-
-            val items = bodyItems.map { noteItem ->
-                when {
-                    noteItem is NoteImage -> {
-                        Note.Body(
-                            type = Note.Body.Image,
-                            body = noteItem.toJsonString()
-                        )
-                    }
-                    else -> {
-                        Note.Body(
-                            type = Note.Body.Text,
-                            body = noteItem.toJsonString()
-                        )
-                    }
-                }
-            }
-            noteEditorRepository.updateNote(Note(heading = state.value.heading, body = items))
+            this@NoteEditorViewModel.bodyItems.emit(bodyItems)
         }
     }
 
@@ -144,55 +103,59 @@ class NoteEditorViewModel @Inject constructor(
         image: String,
         widthPercent: Float
     ) {
-        val bodyItems = state.value.bodyItems.mapIndexed { mapIndex, any ->
-            if (mapIndex == index)
-                NoteImage(path = image, widthPercentage = widthPercent)
-            else
-                any
-        }
-        val items = bodyItems.map { noteItem ->
-            when {
-                noteItem is NoteImage -> {
-                    Note.Body(
-                        type = Note.Body.Image,
-                        body = noteItem.toJsonString()
-                    )
-                }
-                else -> {
-                    Note.Body(
-                        type = Note.Body.Text,
-                        body = noteItem.toJsonString()
-                    )
+        viewModelScope.launch {
+            bodyItems.getAndUpdate {
+                it.mapIndexed { mapIndex, any ->
+                    if (mapIndex == index)
+                        NoteImage(path = image, widthPercentage = widthPercent)
+                    else
+                        any
                 }
             }
         }
-        noteEditorRepository.updateNote(Note(heading = state.value.heading, body = items))
     }
 
     fun removeImage(index: Int) {
-        val bodyItems = state.value.bodyItems.mapIndexedNotNull { mapIndex, any ->
-            if (mapIndex == index)
-                null
-            else
-                any
-        }
-        val items = bodyItems.map { noteItem ->
-            when {
-                noteItem is NoteImage -> {
-                    Note.Body(
-                        type = Note.Body.Image,
-                        body = noteItem.toJsonString()
-                    )
-                }
-                else -> {
-                    Note.Body(
-                        type = Note.Body.Text,
-                        body = noteItem.toJsonString()
-                    )
+        viewModelScope.launch {
+            bodyItems.getAndUpdate {
+                it.mapIndexedNotNull { mapIndex, any ->
+                    if (mapIndex == index)
+                        null
+                    else
+                        any
                 }
             }
         }
-        noteEditorRepository.updateNote(Note(heading = state.value.heading, body = items))
     }
 
+    fun saveNote() {
+        viewModelScope.launch {
+            val earlierNote = note.value ?: Note(
+                body = null,
+                heading = state.value.heading
+            )
+
+            noteEditorRepository.updateNote(
+                earlierNote.copy(
+                    body = bodyItems.value.mapNotNull {
+                        when (it) {
+                            is NoteEditorValue -> {
+                                Note.Body(
+                                    type = Note.Body.Text,
+                                    body = it.toJsonString()
+                                )
+                            }
+                            is NoteImage -> {
+                                Note.Body(
+                                    type = Note.Body.Image,
+                                    body = it.toJsonString()
+                                )
+                            }
+                            else -> null
+                        }
+                    }
+                )
+            )
+        }
+    }
 }
