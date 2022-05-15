@@ -23,6 +23,18 @@ android {
         versionName = "1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments(
+                    mapOf(
+                        "room.schemaLocation" to "$projectDir/schemas",
+                        "room.incremental" to "true",
+                        "room.expandProjection" to "true"
+                    )
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -112,4 +124,9 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(libs.gson)
+
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
 }
